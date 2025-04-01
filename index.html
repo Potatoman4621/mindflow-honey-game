@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindFlow Honey - Bee Collector Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #87CEEB;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background-image: linear-gradient(#87CEEB, #78A7C5);
+            border: 4px solid #553C1B;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        #game-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        #score-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            z-index: 10;
+        }
+        
+        #menu-screen, #game-over-screen, #leaderboard-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 20;
+        }
+        
+        .screen-title {
+            color: #FFD700;
+            font-size: 40px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px #000;
+        }
+        
+        .game-button {
+            background-color: #E3B448;
+            color: #553C1B;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        
+        .game-button:hover {
+            background-color: #FFD700;
+            transform: scale(1.05);
+        }
+        
+        #leaderboard-container {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-height: 70%;
+            overflow-y: auto;
+        }
+        
+        .leaderboard-entry {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+        
+        .leaderboard-entry:nth-child(odd) {
+            background-color: #f5f5f5;
+        }
+        
+        .rank {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .player-name {
+            flex-grow: 1;
+        }
+        
+        .player-score {
+            font-weight: bold;
+            color: #553C1B;
+        }
+        
+        #name-input {
+            padding: 10px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            border: 2px solid #E3B448;
+            width: 80%;
+            max-width: 300px;
+        }
+        
+        .logo {
+            position: absolute;
+            top: 20px;
+            width: 300px;
+            text-align: center;
+            color: #553C1B;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 10px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .controls-info {
+            position: absolute;
+            bottom: 20px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="800" height="600"></canvas>
+        <div id="score-container">
+            Honey: 0 | Lion's Mane: 0
+        </div>
+        
+        <div id="menu-screen">
+            <h1 class="logo">MindFlow Honey</h1>
+            <h2 class="screen-title">Bee Collector</h2>
+            <p style="color: white; text-align: center; max-width: 600px; margin-bottom: 20px;">
+                Help your bee collect honey and Lion's Mane mushrooms while avoiding toxic energy drinks!<br>
+                Natural energy from MindFlow Honey is the best choice!
+            </p>
+            <button id="start-button" class="game-button">Start Game</button>
+            <button id="show-leaderboard-button" class="game-button">Leaderboard</button>
+            <p class="controls-info">Use Arrow Keys or WASD to move the bee</p>
+        </div>
+        
+        <div id="game-over-screen" style="display: none;">
+            <h2 class="screen-title">Game Over!</h2>
+            <div style="color: white; text-align: center; margin-bottom: 20px;">
+                <p>Your Score:</p>
+                <p id="final-score" style="font-size: 24px; font-weight: bold;">Honey: 0 | Lion's Mane: 0</p>
+                <p>Total Score: <span id="total-score">0</span></p>
+            </div>
+            <input type="text" id="name-input" placeholder="Enter your name" maxlength="15">
+            <button id="submit-score-button" class="game-button">Submit Score</button>
+            <button id="play-again-button" class="game-button">Play Again</button>
+            <button id="menu-button" class="game-button">Main Menu</button>
+        </div>
+        
+        <div id="leaderboard-screen" style="display: none;">
+            <h2 class="screen-title">Top 10 Collectors</h2>
+            <div id="leaderboard-container"></div>
+            <button id="back-button" class="game-button">Back to Menu</button>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const scoreContainer = document.getElementById('score-container');
+        const menuScreen = document.getElementById('menu-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const leaderboardScreen = document.getElementById('leaderboard-screen');
+        const finalScoreElement = document.getElementById('final-score');
+        const totalScoreElement = document.getElementById('total-score');
+        const leaderboardContainer = document.getElementById('leaderboard-container');
+        
+        let gameActive = false;
+        let beeX = canvas.width / 2;
+        let beeY = canvas.height / 2;
+        let beeSize = 30;
+        let beeSpeed = 5;
+        let honeyCount = 0;
+        let lionsManeCount = 0;
+        
+        // Arrays to hold game objects
+        let honeyDrops = [];
+        let lionsMane = [];
+        let energyDrinks = [];
+        
+        // Object spawn rates (frames)
+        const honeySpawnRate = 60;
+        const lionsManeSpawnRate = 120;
+        const energyDrinkSpawnRate = 45;
+        let frameCount = 0;
+        
+        // Leaderboard - using in-memory storage instead of localStorage
+        let leaderboard = [];
+        
+        // Keyboard input
+        const keys = {};
+        
+        // Bee image
+        const beeImage = new Image();
+        beeImage.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSIzNSIgZmlsbD0iI0ZGRDcwMCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNMzAgNDAgSDcwIE03MCA2MCBIMzAgTTIwIDUwIEg4MCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjMiLz48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiMwMDAiLz48Y2lyY2xlIGN4PSI3MCIgY3k9IjMwIiByPSI4IiBmaWxsPSIjZmZmIiBzdHJva2U9IiMwMDAiLz48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIzIiBmaWxsPSIjMDAwIi8+PGNpcmNsZSBjeD0iNzAiIGN5PSIzMCIgcj0iMyIgZmlsbD0iIzAwMCIvPjwvc3ZnPg==';
+        
+        // Honey image
+        const honeyImage = new Image();
+        honeyImage.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MCA1MCI+PHBhdGggZD0iTTI1IDUgTDE1IDE1IEwxNSAzNSBMMjUgNDUgTDM1IDM1IEwzNSAxNSBaIiBmaWxsPSIjRTNCNDQ4IiBzdHJva2U9IiM1NTNDMUIiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==';
+        
+        // Lion's Mane mushroom image
+        const lionsManeImage = new Image();
+        lionsManeImage.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MCA1MCI+PGNpcmNsZSBjeD0iMjUiIGN5PSIyMCIgcj0iMTUiIGZpbGw9IiNGRkZGRUYiIHN0cm9rZT0iI0QwQ0VDRSIgc3Ryb2tlLXdpZHRoPSIxIi8+PHBhdGggZD0iTTIzIDM1IEwyMyA0NSBMMjcgNDUgTDI3IDM1IiBmaWxsPSIjQkE4QjYzIiBzdHJva2U9IiM1NTNDMUIiIHN0cm9rZS13aWR0aD0iMSIvPjxwYXRoIGQ9Ik0xMCAxNSBRMjUgMCAzNSAxNSBRNDAgMjUgMjUgMzAgUTEwIDI1IDE1IDE1IiBmaWxsPSIjRkZGRkVGIiBzdHJva2U9IiNEMENFQ0UiIHN0cm9rZS13aWR0aD0iMSIvPjwvc3ZnPg==';
+        
+        // Energy drink image
+        const energyDrinkImage = new Image();
+        energyDrinkImage.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MCA1MCI+PHBhdGggZD0iTTIwIDUgTDE1IDEzIEwxNSA0NSBMIDI1IDQ1IEwzNSA0NSBMMzUgMTMgTDMwIDUgWiIgZmlsbD0iI0ZGMzMzMyIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEiLz48cGF0aCBkPSJNMTcgMTUgTDMzIDE1IEwzMiA0MCBMMTggNDAgWiIgZmlsbD0iI0ZGNjY2NiIvPjx0ZXh0IHg9IjI1IiB5PSIzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0ZGRiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjYiIGZvbnQtd2VpZ2h0PSJib2xkIj5FTkVSR1k8L3RleHQ+PC9zdmc+';
+        
+        // Background objects (clouds, flowers)
+        let backgroundObjects = [];
+        for (let i = 0; i < 10; i++) {
+            backgroundObjects.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: 30 + Math.random() * 50,
+                type: Math.random() > 0.5 ? 'cloud' : 'flower',
+                speed: 0.2 + Math.random() * 0.3
+            });
+        }
+        
+        // Event listeners
+        document.getElementById('start-button').addEventListener('click', startGame);
+        document.getElementById('play-again-button').addEventListener('click', startGame);
+        document.getElementById('menu-button').addEventListener('click', showMainMenu);
+        document.getElementById('back-button').addEventListener('click', showMainMenu);
+        document.getElementById('show-leaderboard-button').addEventListener('click', showLeaderboard);
+        document.getElementById('submit-score-button').addEventListener('click', submitScore);
+        
+        window.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+        
+        // Initialize the game
+        function init() {
+            updateLeaderboardDisplay();
+        }
+        
+        // Start the game
+        function startGame() {
+            gameActive = true;
+            honeyCount = 0;
+            lionsManeCount = 0;
+            beeX = canvas.width / 2;
+            beeY = canvas.height / 2;
+            honeyDrops = [];
+            lionsMane = [];
+            energyDrinks = [];
+            frameCount = 0;
+            
+            menuScreen.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+            leaderboardScreen.style.display = 'none';
+            
+            // Start the game loop
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Game loop
+        function gameLoop() {
+            if (!gameActive) return;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Update frame counter
+            frameCount++;
+            
+            // Draw background
+            drawBackground();
+            
+            // Move bee based on keyboard input
+            moveBee();
+            
+            // Spawn objects
+            if (frameCount % honeySpawnRate === 0) spawnHoney();
+            if (frameCount % lionsManeSpawnRate === 0) spawnLionsMane();
+            if (frameCount % energyDrinkSpawnRate === 0) spawnEnergyDrink();
+            
+            // Update and draw objects
+            updateAndDrawObjects();
+            
+            // Draw bee
+            drawBee();
+            
+            // Check collisions
+            checkCollisions();
+            
+            // Update score display
+            updateScore();
+            
+            // Continue the game loop
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Draw background with clouds and flowers
+        function drawBackground() {
+            // Sky gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(1, '#78A7C5');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw and update background objects
+            backgroundObjects.forEach(obj => {
+                // Move objects slowly
+                obj.x -= obj.speed;
+                if (obj.x + obj.size < 0) {
+                    obj.x = canvas.width + obj.size;
+                    obj.y = Math.random() * canvas.height;
+                }
+                
+                if (obj.type === 'cloud') {
+                    // Draw cloud
+                    ctx.fillStyle = '#fff';
+                    ctx.beginPath();
+                    ctx.arc(obj.x, obj.y, obj.size/2, 0, Math.PI * 2);
+                    ctx.arc(obj.x + obj.size/3, obj.y - obj.size/4, obj.size/3, 0, Math.PI * 2);
+                    ctx.arc(obj.x + obj.size/2, obj.y, obj.size/2.5, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    // Draw flower
+                    ctx.fillStyle = '#8FBC8F';
+                    ctx.beginPath();
+                    ctx.rect(obj.x, obj.y + obj.size/2, obj.size/10, obj.size/2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#FF69B4';
+                    for (let i = 0; i < 5; i++) {
+                        ctx.beginPath();
+                        ctx.ellipse(
+                            obj.x + obj.size/20 + Math.cos(Math.PI*2/5*i) * obj.size/6,
+                            obj.y + Math.sin(Math.PI*2/5*i) * obj.size/6,
+                            obj.size/10, obj.size/5, Math.PI*2/5*i,
+                            0, Math.PI * 2
+                        );
+                        ctx.fill();
+                    }
+                    
+                    ctx.fillStyle = '#FFFF00';
+                    ctx.beginPath();
+                    ctx.arc(obj.x + obj.size/20, obj.y, obj.size/10, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+        }
+        
+        // Move bee based on keyboard input
+        function moveBee() {
+            if (keys['ArrowUp'] || keys['w'] || keys['W']) {
+                beeY = Math.max(beeSize/2, beeY - beeSpeed);
+            }
+            if (keys['ArrowDown'] || keys['s'] || keys['S']) {
+                beeY = Math.min(canvas.height - beeSize/2, beeY + beeSpeed);
+            }
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+                beeX = Math.max(beeSize/2, beeX - beeSpeed);
+            }
+            if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+                beeX = Math.min(canvas.width - beeSize/2, beeX + beeSpeed);
+            }
+        }
+        
+        // Draw bee
+        function drawBee() {
+            ctx.drawImage(beeImage, beeX - beeSize/2, beeY - beeSize/2, beeSize, beeSize);
+        }
+        
+        // Spawn honey
+        function spawnHoney() {
+            honeyDrops.push({
+                x: Math.random() * (canvas.width - 20) + 10,
+                y: -20,
+                size: 20,
+                speed: 1 + Math.random() * 2
+            });
+        }
+        
+        // Spawn Lion's Mane mushroom
+        function spawnLionsMane() {
+            lionsMane.push({
+                x: Math.random() * (canvas.width - 25) + 12.5,
+                y: -25,
+                size: 25,
+                speed: 1 + Math.random() * 1.5
+            });
+        }
+        
+        // Spawn energy drink
+        function spawnEnergyDrink() {
+            energyDrinks.push({
+                x: Math.random() * (canvas.width - 20) + 10,
+                y: -20,
+                size: 30,
+                speed: 2 + Math.random() * 3
+            });
+        }
+        
+        // Update and draw objects
+        function updateAndDrawObjects() {
+            // Update and draw honey drops
+            for (let i = honeyDrops.length - 1; i >= 0; i--) {
+                const honey = honeyDrops[i];
+                honey.y += honey.speed;
+                
+                // Remove if out of screen
+                if (honey.y > canvas.height + honey.size) {
+                    honeyDrops.splice(i, 1);
+                    continue;
+                }
+                
+                // Draw honey
+                ctx.drawImage(honeyImage, honey.x - honey.size/2, honey.y - honey.size/2, honey.size, honey.size);
+            }
+            
+            // Update and draw Lion's Mane mushrooms
+            for (let i = lionsMane.length - 1; i >= 0; i--) {
+                const mushroom = lionsMane[i];
+                mushroom.y += mushroom.speed;
+                
+                // Remove if out of screen
+                if (mushroom.y > canvas.height + mushroom.size) {
+                    lionsMane.splice(i, 1);
+                    continue;
+                }
+                
+                // Draw mushroom
+                ctx.drawImage(lionsManeImage, mushroom.x - mushroom.size/2, mushroom.y - mushroom.size/2, mushroom.size, mushroom.size);
+            }
+            
+            // Update and draw energy drinks
+            for (let i = energyDrinks.length - 1; i >= 0; i--) {
+                const drink = energyDrinks[i];
+                drink.y += drink.speed;
+                
+                // Remove if out of screen
+                if (drink.y > canvas.height + drink.size) {
+                    energyDrinks.splice(i, 1);
+                    continue;
+                }
+                
+                // Draw energy drink
+                ctx.drawImage(energyDrinkImage, drink.x - drink.size/2, drink.y - drink.size/2, drink.size, drink.size);
+            }
+        }
+        
+        // Check collisions
+        function checkCollisions() {
+            // Check honey collisions
+            for (let i = honeyDrops.length - 1; i >= 0; i--) {
+                const honey = honeyDrops[i];
+                const dx = honey.x - beeX;
+                const dy = honey.y - beeY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < (beeSize/2 + honey.size/3)) {
+                    honeyDrops.splice(i, 1);
+                    honeyCount++;
+                }
+            }
+            
+            // Check Lion's Mane collisions
+            for (let i = lionsMane.length - 1; i >= 0; i--) {
+                const mushroom = lionsMane[i];
+                const dx = mushroom.x - beeX;
+                const dy = mushroom.y - beeY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < (beeSize/2 + mushroom.size/3)) {
+                    lionsMane.splice(i, 1);
+                    lionsManeCount++;
+                }
+            }
+            
+            // Check energy drink collisions
+            for (let i = 0; i < energyDrinks.length; i++) {
+                const drink = energyDrinks[i];
+                const dx = drink.x - beeX;
+                const dy = drink.y - beeY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < (beeSize/2 + drink.size/3)) {
+                    gameOver();
+                    return;
+                }
+            }
+        }
+        
+        // Update score display
+        function updateScore() {
+            scoreContainer.textContent = `Honey: ${honeyCount} | Lion's Mane: ${lionsManeCount}`;
+        }
+        
+        // Game over
+        function gameOver() {
+            gameActive = false;
+            
+            const totalScore = honeyCount + (lionsManeCount * 3);
+            
+            finalScoreElement.textContent = `Honey: ${honeyCount} | Lion's Mane: ${lionsManeCount}`;
+            totalScoreElement.textContent = totalScore;
+            
+            gameOverScreen.style.display = 'flex';
+        }
+        
+        // Submit score to leaderboard
+        function submitScore() {
+            const playerName = document.getElementById('name-input').value.trim() || 'Anonymous Bee';
+            const totalScore = honeyCount + (lionsManeCount * 3);
+            
+            leaderboard.push({
+                name: playerName,
+                honey: honeyCount,
+                lionsMane: lionsManeCount,
+                total: totalScore,
+                date: new Date().toLocaleDateString()
+            });
+            
+            // Sort and limit to top 10
+            leaderboard.sort((a, b) => b.total - a.total);
+            if (leaderboard.length > 10) {
+                leaderboard = leaderboard.slice(0, 10);
+            }
+            
+            // No longer using localStorage for storage in this sandboxed environment
+            
+            // Show leaderboard
+            updateLeaderboardDisplay();
+            showLeaderboard();
+        }
+        
+        // Update leaderboard display
+        function updateLeaderboardDisplay() {
+            leaderboardContainer.innerHTML = '';
+            
+            if (leaderboard.length === 0) {
+                leaderboardContainer.innerHTML = '<p style="text-align: center; padding: 20px;">No scores yet. Be the first!</p>';
+                return;
+            }
+            
+            // Header
+            const header = document.createElement('div');
+            header.className = 'leaderboard-entry';
+            header.style.fontWeight = 'bold';
+            header.style.borderBottom = '2px solid #553C1B';
+            header.innerHTML = `
+                <span class="rank">#</span>
+                <span class="player-name">Player</span>
+                <span>Honey</span>
+                <span>Lion's Mane</span>
+                <span class="player-score">Total</span>
+                <span>Date</span>
+            `;
+            leaderboardContainer.appendChild(header);
+            
+            // Entries
+            leaderboard.forEach((entry, index) => {
+                const entryElement = document.createElement('div');
+                entryElement.className = 'leaderboard-entry';
+                entryElement.innerHTML = `
+                    <span class="rank">${index + 1}</span>
+                    <span class="player-name">${entry.name}</span>
+                    <span>${entry.honey}</span>
+                    <span>${entry.lionsMane}</span>
+                    <span class="player-score">${entry.total}</span>
+                    <span>${entry.date}</span>
+                `;
+                leaderboardContainer.appendChild(entryElement);
+            });
+        }
+        
+        // Show leaderboard screen
+        function showLeaderboard() {
+            menuScreen.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+            leaderboardScreen.style.display = 'flex';
+            updateLeaderboardDisplay();
+        }
+        
+        // Show main menu
+        function showMainMenu() {
+            menuScreen.style.display = 'flex';
+            gameOverScreen.style.display = 'none';
+            leaderboardScreen.style.display = 'none';
+        }
+        
+        // Initialize the game
+        init();
+    </script>
+</body>
+</html>
